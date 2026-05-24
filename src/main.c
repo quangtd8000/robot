@@ -58,6 +58,12 @@ int main(void)
         debug_led_update();
     }
 
+    UART_PUTS("START: WAIT 2S\r\n");
+    for (uint16_t i = 0; i < (START_DELAY_MS / 100U); i++) {
+        _delay_ms(100);
+        debug_led_update();
+    }
+
     UART_PUTS("START: CAL 1S\r\n");
     sensors_init();
     robot_init();

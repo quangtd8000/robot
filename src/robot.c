@@ -140,9 +140,13 @@ void robot_follow_corridor(void)
         (SIDE_PID_WEIGHT * (rightValue - rightTarget)) +
         (FRONT_PID_WEIGHT * (frValue - frTarget)));
     int16_t error = (int16_t)(leftErr - rightErr);
+    int16_t frontTurn = (int16_t)(
+        (flValue - flTarget) -
+        (frValue - frTarget));
     int16_t derivative;
     int32_t correction32;
     int16_t correction;
+    int16_t frontAssist = 0;
     int16_t leftSpeed;
     int16_t rightSpeed;
 
@@ -162,6 +166,29 @@ void robot_follow_corridor(void)
         correction = -CORRECTION_LIMIT;
     } else {
         correction = (int16_t)correction32;
+    }
+
+    if (!sensors_wall_front()) {
+        if (frontTurn >= FRONT_TURN_DIFF) {
+            frontAssist = clamp_i16(
+                (int16_t)(frontTurn / FRONT_TURN_ASSIST_SCALE),
+                0,
+                FRONT_TURN_ASSIST_LIMIT);
+            frontAssist = clamp_i16(
+                (int16_t)(frontAssist + RIGHT_TURN_EXTRA_ASSIST),
+                0,
+                FRONT_TURN_ASSIST_LIMIT);
+        } else if (frontTurn <= -FRONT_TURN_DIFF) {
+            frontAssist = clamp_i16(
+                (int16_t)(frontTurn / FRONT_TURN_ASSIST_SCALE),
+                -FRONT_TURN_ASSIST_LIMIT,
+                0);
+        }
+
+        correction = clamp_i16(
+            (int16_t)(correction + frontAssist),
+            -CORRECTION_LIMIT,
+            CORRECTION_LIMIT);
     }
 
     leftSpeed = clamp_i16((int16_t)(BASE_PWM + correction), 0, PWM_MAX);
